@@ -14,6 +14,9 @@ local defaults = {
     hideInRaid = false,
     hideInBG = false,
     hideInArena = false,
+    anchorPoint = "TOP",
+    anchorX = 0,
+    anchorY = -150,
 }
 
 local _G = _G
@@ -59,7 +62,56 @@ EventFrame:SetScript("OnEvent", function(self, event, arg1)
         CreateCheck("Hide in Raid", "hideInRaid", -50)
         CreateCheck("Hide in Battleground", "hideInBG", -80)
         CreateCheck("Hide in Arena", "hideInArena", -110)
+
+        -- Unlock Anchor Checkbox
+        local unlockCb = CreateCheck("Unlock Anchor", "unlockAnchor", -150)
+        unlockCb:SetChecked(false) -- Always start locked
+        unlockCb:SetScript("OnClick", function(self)
+            if self:GetChecked() then
+                ZenToastAnchor:Show()
+                ZenToastAnchor:EnableMouse(true)
+            else
+                ZenToastAnchor:Hide()
+                ZenToastAnchor:EnableMouse(false)
+            end
+        end)
+
+        -- Restore saved position
+        if ZenToastDB.anchorPoint then
+            ZenToastAnchor:ClearAllPoints()
+            ZenToastAnchor:SetPoint(ZenToastDB.anchorPoint, UIParent, ZenToastDB.anchorPoint, ZenToastDB.anchorX, ZenToastDB.anchorY)
+        end
     end
+end)
+
+-- Anchor Frame
+local ZenToastAnchor = CreateFrame("Frame", "ZenToastAnchor", UIParent)
+ZenToastAnchor:SetSize(FRAME_WIDTH, 20)
+ZenToastAnchor:SetPoint(defaults.anchorPoint, UIParent, defaults.anchorPoint, defaults.anchorX, defaults.anchorY)
+ZenToastAnchor:SetClampedToScreen(true)
+ZenToastAnchor:SetMovable(true)
+ZenToastAnchor:EnableMouse(false)
+ZenToastAnchor:RegisterForDrag("LeftButton")
+ZenToastAnchor:Hide()
+
+ZenToastAnchor.bg = ZenToastAnchor:CreateTexture(nil, "BACKGROUND")
+ZenToastAnchor.bg:SetAllPoints(true)
+ZenToastAnchor.bg:SetTexture(0, 1, 0, 0.5)
+
+ZenToastAnchor.text = ZenToastAnchor:CreateFontString(nil, "OVERLAY", "GameFontNormal")
+ZenToastAnchor.text:SetPoint("CENTER")
+ZenToastAnchor.text:SetText("ZenToast Anchor")
+
+ZenToastAnchor:SetScript("OnDragStart", function(self)
+    self:StartMoving()
+end)
+
+ZenToastAnchor:SetScript("OnDragStop", function(self)
+    self:StopMovingOrSizing()
+    local point, _, _, x, y = self:GetPoint()
+    ZenToastDB.anchorPoint = point
+    ZenToastDB.anchorX = x
+    ZenToastDB.anchorY = y
 end)
 
 -- Toast Pooling & Stacking
@@ -70,7 +122,7 @@ local function ReanchorToasts()
     for i, toast in ipairs(activeToasts) do
         toast:ClearAllPoints()
         if i == 1 then
-            toast:SetPoint(POS_POINT, POS_X, POS_Y)
+            toast:SetPoint("TOP", ZenToastAnchor, "BOTTOM", 0, -SPACING)
         else
             toast:SetPoint("TOP", activeToasts[i-1], "BOTTOM", 0, -SPACING)
         end
