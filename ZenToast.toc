@@ -1,0 +1,7 @@
+## Interface: 30300
+## Title: |cff0099ffZen|rToast
+## Notes: Minimalist Friend Toasts and Mass Broadcast based on BNetToast.
+## Author: Custom
+## Version: 1.0
+
+ZenToast.lua
