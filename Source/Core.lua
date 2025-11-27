@@ -12,11 +12,46 @@ ZenToast.POS_X = 0
 ZenToast.POS_Y = -150
 ZenToast.SPACING = 10
 
+-- Class Icon Coordinates (Standard WoW Coords)
+ZenToast.CLASS_ICON_TCOORDS = {
+    WARRIOR     = {0, 0.25, 0, 0.25},
+    MAGE        = {0.25, 0.5, 0, 0.25},
+    ROGUE       = {0.5, 0.75, 0, 0.25},
+    DRUID       = {0.75, 1, 0, 0.25},
+    HUNTER      = {0, 0.25, 0.25, 0.5},
+    SHAMAN      = {0.25, 0.5, 0.25, 0.5},
+    PRIEST      = {0.5, 0.75, 0.25, 0.5},
+    WARLOCK     = {0.75, 1, 0.25, 0.5},
+    PALADIN     = {0, 0.25, 0.5, 0.75},
+    DEATHKNIGHT = {0.25, 0.5, 0.5, 0.75},
+}
+
+-- Helper: Get English Class Name from Localized Name
+local localizedClassMap = {}
+do
+    local genderTable = { "MALE", "FEMALE" }
+    for _, gender in ipairs(genderTable) do
+        FillLocalizedClassList(localizedClassMap, gender == "FEMALE")
+    end
+end
+
+function ZenToast.GetEnglishClass(localizedClass)
+    if not localizedClass then return "Unknown" end
+    -- Reverse lookup from localized map
+    for english, localized in pairs(localizedClassMap) do
+        if localized == localizedClass then
+            return english
+        end
+    end
+    return "Unknown"
+end
+
 -- Defaults
 ZenToast.defaults = {
     hideInRaid = false,
     hideInBG = false,
     hideInArena = false,
+    useCustomIcons = false,
     anchorPoint = "TOP",
     anchorX = 0,
     anchorY = -150,

@@ -1,7 +1,7 @@
 ## Interface: 30300
 ## Title: ZenToast
 ## Notes: Minimalist toast notifications for friends coming online/offline.
-## Author: Zen
+## Author: Zendevve
 ## Version: 1.1
 ## SavedVariables: ZenToastDB
 

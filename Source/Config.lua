@@ -24,6 +24,7 @@ function ZenToast.InitConfig()
     CreateCheck("Hide in Raid", "hideInRaid", -50)
     CreateCheck("Hide in Battleground", "hideInBG", -80)
     CreateCheck("Hide in Arena", "hideInArena", -110)
+    CreateCheck("Use Custom Icons", "useCustomIcons", -140)
 
     -- Unlock Anchor Checkbox
     local unlockCb = CreateCheck("Unlock Anchor", "unlockAnchor", -150)

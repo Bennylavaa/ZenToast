@@ -145,7 +145,7 @@ local function GetToast()
     return toast
 end
 
-function ZenToast.ShowToast(name, isOnline)
+function ZenToast.ShowToast(name, isOnline, debugClass)
     -- 1. Combat Suppression
     if InCombatLockdown() then return end
 
@@ -166,21 +166,36 @@ function ZenToast.ShowToast(name, isOnline)
     local class = "Unknown"
     local area = "Unknown"
 
-    for i = 1, GetNumFriends() do
-        local fName, fLevel, fClass, fArea, fConnected = GetFriendInfo(i)
-        if fName and fName == name then
-            level = fLevel or "??"
-            class = fClass or "Unknown"
-            area = fArea or "Unknown"
+    if debugClass then
+        class = debugClass
+        level = "80"
+        area = "Test Zone"
+        local color = RAID_CLASS_COLORS[class]
+        if color then classColor = color.colorStr end
+    else
+        for i = 1, GetNumFriends() do
+            local fName, fLevel, fClass, fArea, fConnected = GetFriendInfo(i)
+            if fName and fName == name then
+                level = fLevel or "??"
+                class = fClass or "Unknown"
+                area = fArea or "Unknown"
 
-            if fClass then
-                for k, v in pairs(RAID_CLASS_COLORS) do
-                    if k == string.upper(fClass) or fClass == k then
-                        classColor = v.colorStr
+                if fClass then
+                    -- Normalize class to English uppercase
+                    local englishClass = ZenToast.GetEnglishClass(fClass)
+                    if englishClass and englishClass ~= "Unknown" then
+                        class = englishClass
+                        local color = RAID_CLASS_COLORS[class]
+                        if color then
+                            classColor = color.colorStr
+                        end
+                    else
+                         -- Fallback if lookup fails (shouldn't happen with valid classes)
+                         class = fClass
                     end
                 end
+                break
             end
-            break
         end
     end
 
@@ -191,11 +206,9 @@ function ZenToast.ShowToast(name, isOnline)
     -- Extract class color for border
     local borderR, borderG, borderB = 0.5, 0.5, 0.5 -- Default gray
     if class ~= "Unknown" then
-        for k, v in pairs(RAID_CLASS_COLORS) do
-            if k == string.upper(class) or class == k then
-                borderR, borderG, borderB = v.r, v.g, v.b
-                break
-            end
+        local color = RAID_CLASS_COLORS[class]
+        if color then
+            borderR, borderG, borderB = color.r, color.g, color.b
         end
     end
 
@@ -210,20 +223,28 @@ function ZenToast.ShowToast(name, isOnline)
     end
 
     -- Icon Logic
-    local iconTexture = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes"
-    local coords = CLASS_ICON_TCOORDS[string.upper(class)]
-
-    if coords then
-        toast.Icon:SetTexture(iconTexture)
-        toast.Icon:SetTexCoord(unpack(coords))
+    if ZenToastDB.useCustomIcons then
+        -- Custom Icon Path: Interface\AddOns\ZenToast\Icons\CLASS.tga
+        local customPath = "Interface\\AddOns\\ZenToast\\Icons\\" .. class .. ".tga"
+        toast.Icon:SetTexture(customPath)
+        toast.Icon:SetTexCoord(0, 1, 0, 1) -- Full image
     else
-        -- Fallback: Use a generic icon
-        toast.Icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
-        toast.Icon:SetTexCoord(0, 1, 0, 1)
+        -- Default Blizzard Icons
+        local iconTexture = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes"
+        local coords = ZenToast.CLASS_ICON_TCOORDS[class]
+
+        if coords then
+            toast.Icon:SetTexture(iconTexture)
+            toast.Icon:SetTexCoord(unpack(coords))
+        else
+            -- Fallback: Use a generic icon
+            toast.Icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+            toast.Icon:SetTexCoord(0, 1, 0, 1)
+        end
     end
 
     -- Faction Icon Logic (Class Based)
-    local faction = CLASS_FACTION[string.upper(class)]
+    local faction = CLASS_FACTION[class]
     print("ZenToast Debug: Name=" .. name .. ", Class=" .. class .. ", Faction=" .. tostring(faction))
 
     if faction == "Alliance" then
