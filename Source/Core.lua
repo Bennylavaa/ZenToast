@@ -52,15 +52,29 @@ ZenToast.defaults = {
     hideInBG = false,
     hideInArena = false,
     useCustomIcons = false,
+    -- Online Display Options
     showIcon = true,
     showFactionBadge = true,
     showLevel = true,
     showClass = true,
     showLocation = true,
+    -- Offline Display Options
+    showIconOffline = true,
+    showFactionBadgeOffline = false,
+    showLevelOffline = true,
+    showClassOffline = true,
+    showLocationOffline = true,
+    -- AFK Detection
+    enableAFK = false,
+    afkPollInterval = 3,
     anchorPoint = "TOP",
     anchorX = 0,
     anchorY = -150,
 }
+
+-- AFK Status Tracking
+ZenToast.friendAFKStatus = {}
+ZenToast.afkPollTimer = nil
 
 -- Event Frame
 local EventFrame = CreateFrame("Frame")
@@ -115,4 +129,66 @@ local function ChatFilter(self, event, msg, ...)
 end
 
 ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", ChatFilter)
+
+-- AFK Status Polling
+function ZenToast.CheckAFKStatus()
+    if not ZenToastDB.enableAFK then return end
+
+    for i = 1, GetNumFriends() do
+        local name, _, _, _, connected, status = GetFriendInfo(i)
+        if name and connected then
+            local currentStatus = status or "" -- "<AFK>" or "<DND>" or ""
+            local isAFK = (currentStatus == "<AFK>")
+            local wasPreviouslyAFK = ZenToast.friendAFKStatus[name]
+
+            if wasPreviouslyAFK == nil then
+                -- First time seeing this friend, record their status
+                ZenToast.friendAFKStatus[name] = isAFK
+            elseif wasPreviouslyAFK ~= isAFK then
+                -- Status changed!
+                ZenToast.friendAFKStatus[name] = isAFK
+                if ZenToast.ShowToast then
+                    if isAFK then
+                        ZenToast.ShowToast(name, true, nil, "afk")
+                    else
+                        ZenToast.ShowToast(name, true, nil, "away")
+                    end
+                end
+            end
+        else
+            -- Friend disconnected, clear their status
+            if name then
+                ZenToast.friendAFKStatus[name] = nil
+            end
+        end
+    end
+end
+
+function ZenToast.StartAFKPolling()
+    if ZenToast.afkPollTimer then
+        ZenToast.afkPollTimer:Cancel()
+    end
+
+    local pollFrame = CreateFrame("Frame")
+    pollFrame.elapsed = 0
+    pollFrame:SetScript("OnUpdate", function(self, elapsed)
+        self.elapsed = self.elapsed + elapsed
+        if self.elapsed >= ZenToastDB.afkPollInterval then
+            self.elapsed = 0
+            ZenToast.CheckAFKStatus()
+        end
+    end)
+
+    ZenToast.afkPollTimer = pollFrame
+end
+
+function ZenToast.StopAFKPolling()
+    if ZenToast.afkPollTimer then
+        ZenToast.afkPollTimer:SetScript("OnUpdate", nil)
+        ZenToast.afkPollTimer = nil
+    end
+    -- Clear tracking table
+    ZenToast.friendAFKStatus = {}
+end
+
 print("ZenToast: Core loaded")

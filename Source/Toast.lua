@@ -145,7 +145,8 @@ local function GetToast()
     return toast
 end
 
-function ZenToast.ShowToast(name, isOnline, debugClass)
+function ZenToast.ShowToast(name, isOnline, debugClass, statusType)
+    -- statusType: nil (normal online/offline), "afk" (went AFK), "away" (returned from AFK)
     -- 1. Combat Suppression
     if InCombatLockdown() then return end
 
@@ -212,52 +213,93 @@ function ZenToast.ShowToast(name, isOnline, debugClass)
         end
     end
 
-    if isOnline then
+    -- Determine which settings to use based on status type
+    local useOfflineSettings = (not isOnline and not statusType)
+    local showIconSetting = useOfflineSettings and ZenToastDB.showIconOffline or ZenToastDB.showIcon
+    local showFactionSetting = useOfflineSettings and ZenToastDB.showFactionBadgeOffline or ZenToastDB.showFactionBadge
+    local showLevelSetting = useOfflineSettings and ZenToastDB.showLevelOffline or ZenToastDB.showLevel
+    local showClassSetting = useOfflineSettings and ZenToastDB.showClassOffline or ZenToastDB.showClass
+    local showLocationSetting = useOfflineSettings and ZenToastDB.showLocationOffline or ZenToastDB.showLocation
+
+    -- Set main text based on status type
+    if statusType == "afk" then
+        toast.Text:SetText("|c" .. classColor .. name .. "|r is now AFK")
+    elseif statusType == "away" then
+        toast.Text:SetText("|c" .. classColor .. name .. "|r is no longer AFK")
+    elseif isOnline then
         toast.Text:SetText("|c" .. classColor .. name .. "|r has come online")
+    else
+        toast.Text:SetText("|c" .. classColor .. name .. "|r went offline")
+    end
 
-        -- Build SubText dynamically based on display settings
-        local subParts = {}
-        if ZenToastDB.showLevel then
-            table.insert(subParts, "Level " .. level)
-        end
-        if ZenToastDB.showClass then
-            table.insert(subParts, class)
-        end
-        if ZenToastDB.showLocation then
-            table.insert(subParts, area)
-        end
-
+    -- Build SubText dynamically
+    if statusType == "afk" or statusType == "away" then
+        -- For AFK status changes, use same display settings as online
         local subText = ""
-        if #subParts > 0 then
-            -- First line: Level and Class (if both shown)
-            local firstLine = {}
-            if ZenToastDB.showLevel then table.insert(firstLine, "Level " .. level) end
-            if ZenToastDB.showClass then table.insert(firstLine, class) end
+        local firstLine = {}
+        if ZenToastDB.showLevel then table.insert(firstLine, "Level " .. level) end
+        if ZenToastDB.showClass then table.insert(firstLine, class) end
 
-            if #firstLine > 0 then
-                subText = table.concat(firstLine, " ")
+        if #firstLine > 0 then
+            subText = table.concat(firstLine, " ")
+        end
+
+        if ZenToastDB.showLocation then
+            if subText ~= "" then
+                subText = subText .. "\n" .. area
+            else
+                subText = area
             end
+        end
 
-            -- Second line: Location
-            if ZenToastDB.showLocation then
-                if subText ~= "" then
-                    subText = subText .. "\n" .. area
-                else
-                    subText = area
-                end
+        toast.SubText:SetText(subText)
+        toast:SetBackdropBorderColor(borderR, borderG, borderB, 0.6)
+    elseif isOnline then
+        -- Online notification
+        local subText = ""
+        local firstLine = {}
+        if showLevelSetting then table.insert(firstLine, "Level " .. level) end
+        if showClassSetting then table.insert(firstLine, class) end
+
+        if #firstLine > 0 then
+            subText = table.concat(firstLine, " ")
+        end
+
+        if showLocationSetting then
+            if subText ~= "" then
+                subText = subText .. "\n" .. area
+            else
+                subText = area
             end
         end
 
         toast.SubText:SetText(subText)
         toast:SetBackdropBorderColor(borderR, borderG, borderB, 0.8)
     else
-        toast.Text:SetText("|c" .. classColor .. name .. "|r")
-        toast.SubText:SetText("Went Offline")
+        -- Offline notification
+        local subText = ""
+        local firstLine = {}
+        if showLevelSetting then table.insert(firstLine, "Level " .. level) end
+        if showClassSetting then table.insert(firstLine, class) end
+
+        if #firstLine > 0 then
+            subText = table.concat(firstLine, " ")
+        end
+
+        if showLocationSetting then
+            if subText ~= "" then
+                subText = subText .. "\n" .. area
+            else
+                subText = area
+            end
+        end
+
+        toast.SubText:SetText(subText)
         toast:SetBackdropBorderColor(borderR, borderG, borderB, 0.5)
     end
 
-    -- Icon Logic
-    if ZenToastDB.showIcon then
+    -- Icon Logic (use appropriate setting)
+    if showIconSetting then
         if ZenToastDB.useCustomIcons then
             -- Custom Icon Path: Interface\AddOns\ZenToast\Icons\CLASS.tga
             local customPath = "Interface\\AddOns\\ZenToast\\Icons\\" .. class .. ".tga"
@@ -282,8 +324,8 @@ function ZenToast.ShowToast(name, isOnline, debugClass)
         toast.Icon:Hide()
     end
 
-    -- Faction Icon Logic (Class Based)
-    if ZenToastDB.showFactionBadge then
+    -- Faction Icon Logic (use appropriate setting)
+    if showFactionSetting then
         local faction = CLASS_FACTION[class]
         print("ZenToast Debug: Name=" .. name .. ", Class=" .. class .. ", Faction=" .. tostring(faction))
 
