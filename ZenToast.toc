@@ -1,8 +1,11 @@
 ## Interface: 30300
-## Title: |cff0099ffZen|rToast
-## Notes: Minimalist Friend Toasts and Mass Broadcast based on BNetToast.
-## Author: Custom
+## Title: ZenToast
+## Notes: Minimalist toast notifications for friends coming online/offline.
+## Author: Zen
 ## Version: 1.1
 ## SavedVariables: ZenToastDB
 
-ZenToast.lua
+Source\Core.lua
+Source\Config.lua
+Source\Toast.lua
+Source\Broadcast.lua
